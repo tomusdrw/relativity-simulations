@@ -1,0 +1,89 @@
+# RelSim — Special Relativity Simulator
+
+[![Deploy to GitHub Pages](https://github.com/tomusdrw/relsim/actions/workflows/deploy.yml/badge.svg)](https://github.com/tomusdrw/relsim/actions/workflows/deploy.yml)
+[![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-Live-brightgreen)](https://tomusdrw.github.io/relsim/)
+
+An interactive WebGL visualization of special relativity, demonstrating the twin paradox with light-signal propagation.
+
+**👉 Live Demo:** [https://tomusdrw.github.io/relsim/](https://tomusdrw.github.io/relsim/)
+
+## Features
+
+- **Earth** (observer) at x=0 and a destination **Asteroid** at configurable distance (default: 10 light-years)
+- Spaceship travels at constant speed (default 0.9c) to the asteroid and back
+- **Two separate routes** (outbound and return) shown slightly offset for clarity
+- **Four relativistic clocks**:
+  - **Above Earth**: 
+    - Earth local time (when the signal arrives)
+    - Observed ship proper time (via light signals traveling at c)
+  - **Above Spaceship**:
+    - Ship proper time (local)
+    - Observed Earth time (via light signals)
+- **Click or drag** anywhere on the route lines to instantly place the spaceship at that event and update all clocks
+- Real-time animation with play/pause
+- Configurable distance and speed (with live γ factor)
+- Clean cartoon-style graphics
+
+## Controls
+
+| Action              | Effect                              |
+|---------------------|-------------------------------------|
+| Click / Drag route  | Place ship at that position         |
+| ▶ Play / ⏸ Pause    | Animate the round trip              |
+| **Space**           | Toggle play/pause                   |
+| **R**               | Reset to start                      |
+| Distance slider     | Change trip length (1–100 ly)       |
+| Speed slider        | Change velocity (0.05c – 0.999c)    |
+| Turnaround / End    | Jump to key points in the journey   |
+
+## Physics
+
+All calculations use units where **c = 1** (distances in light-years, times in years).
+
+- Coordinate time `t` is measured in the Earth rest frame.
+- Ship proper time: `τ = t / γ`
+- Light delay for observations:
+  - Signal from ship at event `(t, x)` arrives at Earth at time `t + x`
+  - Earth signal observed by ship at event `(t, x)` was emitted at time `t − x`
+
+The visualization includes a **shadow spacecraft** showing the apparent position of the ship from Earth's perspective due to the finite speed of light.
+
+## Running Locally
+
+You can run the simulator in any modern browser:
+
+```bash
+# Option 1: Just open the file
+open index.html
+
+# Option 2: Use a local server (recommended)
+python3 -m http.server 8000
+# Then visit http://localhost:8000
+```
+
+No build step is required — it's a single self-contained HTML file (Three.js is loaded from a CDN).
+
+## Tech Stack
+
+- Pure HTML + CSS + JavaScript
+- [Three.js](https://threejs.org/) (r134) for WebGL rendering
+- Canvas-generated cartoon-style sprites (no external image assets)
+- GitHub Actions for automatic deployment to GitHub Pages
+
+## Development
+
+To contribute or experiment:
+
+1. Clone the repo
+2. Make changes to `index.html`
+3. Open locally or use a live server
+
+Pull requests are welcome!
+
+## License
+
+MIT
+
+---
+
+Made to explore and visualize the beautiful counter-intuitive effects of special relativity. Enjoy the twin paradox! 🚀🌍
