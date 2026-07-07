@@ -416,9 +416,73 @@
         display: none;
       }
     }
+
+    /* First-time walkthrough overlay */
+    .walkthrough {
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 14, 23, 0.92);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 16px;
+    }
+    .walkthrough-card {
+      background: #121826;
+      border: 2px solid #4aa3ff;
+      border-radius: 16px;
+      max-width: 420px;
+      padding: 20px 24px;
+      color: #e6e9f0;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+      font-size: 15px;
+      line-height: 1.45;
+    }
+    .walkthrough-card h2 {
+      margin: 0 0 12px 0;
+      font-size: 22px;
+      text-align: center;
+    }
+    .walkthrough-card p {
+      margin: 8px 0;
+    }
+    .walkthrough-card button {
+      margin-top: 12px;
+      width: 100%;
+      background: #4aa3ff;
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .walkthrough-card button:hover {
+      background: #3a8fd9;
+    }
   </style>
 </head>
 <body>
+  <!-- First-time friendly walkthrough (shown once) -->
+  <div id="walkthrough" class="walkthrough" style="display: none;">
+    <div class="walkthrough-card">
+      <h2>🌍 Hi little explorer! 🚀</h2>
+      <p>Imagine you stay on Earth, and your twin flies in a super-fast rocket to a far away rock and back.</p>
+      <p>The rocket goes almost as fast as light! When things go that fast, time slows down for the rocket.</p>
+      <p>So your twin comes back younger than you!</p>
+      <p>Look at the two clocks on Earth and on the ship — they don't match because of the fast speed and because light takes time to travel.</p>
+      <p>The see-through ship shows what Earth sees (the light is old!).</p>
+      <p><strong>Try this:</strong><br>
+      • Click the glowing lines to move the ship<br>
+      • Click the blue Earth ball or the brown rock to jump in time<br>
+      • Use the 🌍 and 🚀 buttons to add or remove years<br>
+      • Press Play to watch the whole trip!</p>
+      <button id="walkthrough-close">I get it, let's play! ✨</button>
+    </div>
+  </div>
+
   <div class="app">
     <header>
       <div>
@@ -530,10 +594,10 @@
         </div>
 
         <div class="time-controls">
-          <button id="btn-e-minus" title="Subtract 1 Earth year (local)">-1 Earth y</button>
-          <button id="btn-e-plus" title="Add 1 Earth year (local)">+1 Earth y</button>
-          <button id="btn-s-minus" title="Subtract 1 Ship year (local)">-1 Ship y</button>
-          <button id="btn-s-plus" title="Add 1 Ship year (local)">+1 Ship y</button>
+          <button id="btn-e-minus" title="Subtract 1 Earth year (local)">🌍 -1 year</button>
+          <button id="btn-e-plus" title="Add 1 Earth year (local)">🌍 +1 year</button>
+          <button id="btn-s-minus" title="Subtract 1 Ship year (local)">🚀 -1 year</button>
+          <button id="btn-s-plus" title="Add 1 Ship year (local)">🚀 +1 year</button>
         </div>
 
         <div class="note">
@@ -1575,6 +1639,26 @@
       // Helpful: start with a small animation hint on first load? (no, user controls)
       // Expose for debugging if needed
       window.RelSim = { getState: () => computeState(D, beta, progress), setProgress: setStateFromProgress };
+
+      // First-time walkthrough (explain like to a 5 year old)
+      const walkthrough = document.getElementById('walkthrough');
+      const closeBtn = document.getElementById('walkthrough-close');
+      if (walkthrough && !localStorage.getItem('relsim_walkthrough_seen')) {
+        walkthrough.style.display = 'flex';
+        if (closeBtn) {
+          closeBtn.addEventListener('click', () => {
+            walkthrough.style.display = 'none';
+            localStorage.setItem('relsim_walkthrough_seen', 'true');
+          });
+        }
+        // Also close if clicking the dark background
+        walkthrough.addEventListener('click', (ev) => {
+          if (ev.target === walkthrough) {
+            walkthrough.style.display = 'none';
+            localStorage.setItem('relsim_walkthrough_seen', 'true');
+          }
+        });
+      }
     }
 
     init();
