@@ -48,7 +48,7 @@
     }
     .main {
       display: grid;
-      grid-template-columns: 1fr 320px;
+      grid-template-columns: 1fr 380px;
       gap: 16px;
     }
     @media (max-width: 900px) {
@@ -195,14 +195,20 @@
       font-family: ui-monospace, monospace;
     }
     .info {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 6px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
       font-size: 12px;
       background: #0a0e17;
       border-radius: 6px;
       padding: 8px 10px;
       border: 1px solid #1f2636;
+    }
+    .info > div {
+      display: flex;
+      white-space: nowrap;
+      align-items: baseline;
+      gap: 4px;
     }
     .info .k { color: var(--muted); }
     .info .v { font-family: ui-monospace, monospace; font-weight: 600; }
@@ -241,6 +247,24 @@
       font-size: 11px;
       padding: 4px 8px;
       min-height: 28px;
+    }
+
+    .replay-btn {
+      margin-top: 8px;
+      width: 100%;
+      background: transparent;
+      border: 1px solid #3a4558;
+      color: #8a93a8;
+      padding: 5px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.1s ease;
+    }
+    .replay-btn:hover {
+      background: #2a3448;
+      color: #c5cad6;
+      border-color: #4aa3ff;
     }
     button {
       background: #1f2636;
@@ -326,7 +350,7 @@
       }
       .info {
         font-size: 10px;
-        gap: 4px 8px;
+        gap: 3px;
         padding: 6px 8px;
       }
       .info .k {
@@ -348,6 +372,10 @@
         font-size: 10px;
         padding: 3px 6px;
         min-height: 26px;
+      }
+      .replay-btn {
+        font-size: 10px;
+        padding: 4px 6px;
       }
       button {
         padding: 8px 10px;
@@ -396,6 +424,7 @@
       }
       .info {
         font-size: 9px;
+        gap: 2px;
       }
       .info .k {
         font-size: 8px;
@@ -417,71 +446,101 @@
       }
     }
 
-    /* First-time walkthrough overlay */
-    .walkthrough {
+    /* Tour / Walkthrough highlight and popup */
+    .tour-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(10, 14, 23, 0.92);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-      padding: 16px;
+      background: rgba(5, 7, 15, 0.55);
+      z-index: 997;
+      pointer-events: none; /* allow interaction with highlighted element + popup */
+      transition: opacity 0.2s ease;
     }
-    .walkthrough-card {
+
+    .tour-highlight {
+      box-shadow: 0 0 0 3px #4aa3ff, 0 0 0 8px rgba(74, 163, 255, 0.3);
+      border-radius: 6px;
+      transition: box-shadow 0.15s ease;
+      z-index: 1001;
+      position: relative;
+    }
+
+    .tour-popup {
+      position: absolute;
+      z-index: 1002;
       background: #121826;
-      border: 2px solid #4aa3ff;
-      border-radius: 16px;
-      max-width: 420px;
-      padding: 20px 24px;
       color: #e6e9f0;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
-      font-size: 15px;
-      line-height: 1.45;
+      border: 1px solid #4aa3ff;
+      border-radius: 8px;
+      padding: 10px 12px;
+      max-width: 240px;
+      font-size: 13px;
+      line-height: 1.35;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+      pointer-events: auto;
     }
-    .walkthrough-card h2 {
-      margin: 0 0 12px 0;
-      font-size: 22px;
-      text-align: center;
+
+    .tour-popup h3 {
+      margin: 0 0 6px 0;
+      font-size: 13.5px;
+      font-weight: 600;
+      color: #a0d2ff;
     }
-    .walkthrough-card p {
-      margin: 8px 0;
+
+    .tour-popup .tour-text {
+      margin-bottom: 8px;
+      font-size: 12.5px;
+      color: #c5cad6;
     }
-    .walkthrough-card button {
-      margin-top: 12px;
-      width: 100%;
+
+    .tour-popup .tour-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tour-popup .tour-skip {
+      background: none;
+      border: none;
+      color: #8a93a8;
+      font-size: 11px;
+      padding: 2px 4px;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+    .tour-popup .tour-skip:hover {
+      color: #b0b8c8;
+    }
+
+    .tour-popup button {
       background: #4aa3ff;
       color: white;
       border: none;
-      padding: 12px;
-      border-radius: 10px;
-      font-size: 16px;
-      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 5px;
+      font-size: 12px;
       cursor: pointer;
     }
-    .walkthrough-card button:hover {
+    .tour-popup button:hover {
       background: #3a8fd9;
+    }
+    .tour-popup button.secondary {
+      background: #2a3448;
+      color: #c5cad6;
+    }
+
+    /* Make sure highlighted elements stand out even inside the viz area */
+    .tour-highlight {
+      transition: box-shadow 0.2s ease;
     }
   </style>
 </head>
 <body>
-  <!-- First-time friendly walkthrough (shown once) -->
-  <div id="walkthrough" class="walkthrough" style="display: none;">
-    <div class="walkthrough-card">
-      <h2>🌍 Hi little explorer! 🚀</h2>
-      <p>Imagine you stay on Earth, and your twin flies in a super-fast rocket to a far away rock and back.</p>
-      <p>The rocket goes almost as fast as light! When things go that fast, time slows down for the rocket.</p>
-      <p>So your twin comes back younger than you!</p>
-      <p>Look at the two clocks on Earth and on the ship — they don't match because of the fast speed and because light takes time to travel.</p>
-      <p>The see-through ship shows what Earth sees (the light is old!).</p>
-      <p><strong>Try this:</strong><br>
-      • Click the glowing lines to move the ship<br>
-      • Click the blue Earth ball or the brown rock to jump in time<br>
-      • Use the 🌍 and 🚀 buttons to add or remove years<br>
-      • Press Play to watch the whole trip!</p>
-      <button id="walkthrough-close">I get it, let's play! ✨</button>
-    </div>
-  </div>
+  <!-- Slight dimming overlay for the tour (only during walkthrough) -->
+  <div id="tour-overlay" class="tour-overlay" style="display: none;"></div>
+
+  <!-- Tour popup container (created dynamically) -->
+  <div id="tour-popup" class="tour-popup" style="display: none;"></div>
 
   <div class="app">
     <header>
@@ -605,6 +664,8 @@
           "Earth time (local)" is Earth's coordinate time t simultaneous with the ship's true position.<br>
           "Ship time (observed)" from Earth is the ship's proper time at the retarded (light-delayed) position.
         </div>
+
+        <button id="replay-tour" class="replay-btn" title="Show the guided tour again">Replay guided tour</button>
       </div>
     </div>
   </div>
@@ -1354,14 +1415,17 @@
         return;
       }
 
-      // Click on Earth → start (default), or end if already at start
+      // Click on Earth → alternate between start (0) and end (1)
+      // If ship is at/near the end, click goes to start; otherwise to end.
       if (Math.abs(wx) < hitRadius && Math.abs(wy) < hitRadius) {
-        if (progress < 0.05) {
-          // already at start → go to end
-          setStateFromProgress(1);
-        } else {
-          // go to start
+        const T = 2 * (D / beta);
+        const currT = progress * T;
+        if (currT >= T - 0.001) {
+          // at the end → go back to the start
           setStateFromProgress(0);
+        } else {
+          // go to the end
+          setStateFromProgress(1);
         }
         return;
       }
@@ -1640,23 +1704,231 @@
       // Expose for debugging if needed
       window.RelSim = { getState: () => computeState(D, beta, progress), setProgress: setStateFromProgress };
 
-      // First-time walkthrough (explain like to a 5 year old)
-      const walkthrough = document.getElementById('walkthrough');
-      const closeBtn = document.getElementById('walkthrough-close');
-      if (walkthrough && !localStorage.getItem('relsim_walkthrough_seen')) {
-        walkthrough.style.display = 'flex';
-        if (closeBtn) {
-          closeBtn.addEventListener('click', () => {
-            walkthrough.style.display = 'none';
-            localStorage.setItem('relsim_walkthrough_seen', 'true');
-          });
-        }
-        // Also close if clicking the dark background
-        walkthrough.addEventListener('click', (ev) => {
-          if (ev.target === walkthrough) {
-            walkthrough.style.display = 'none';
-            localStorage.setItem('relsim_walkthrough_seen', 'true');
+      function startWalkthrough() {
+        const tourOverlay = document.getElementById('tour-overlay');
+        const tourPopup = document.getElementById('tour-popup');
+        let currentStep = 0;
+        let currentHighlight = null;
+
+        const steps = [
+          {
+            title: "The Scene",
+            text: "Earth (left) and the Asteroid (right). The two colored lines show the spaceship's outbound and return paths.",
+            target: ".viz-container",
+            placement: "bottom"
+          },
+          {
+            title: "Two Ships",
+            text: "The bright ship is its real position. The faint one shows what Earth actually sees (light takes time to arrive).",
+            target: ".viz-container",
+            placement: "right"
+          },
+          {
+            title: "The Clocks",
+            text: "Top clocks = Earth's view. Bottom clocks = Spaceship's view. They disagree because of speed and light delay!",
+            target: ".clocks-panel",
+            placement: "bottom"
+          },
+          {
+            title: "Click to Move",
+            text: "Click or drag anywhere on the glowing routes to instantly place the ship at that moment in the journey.",
+            target: ".viz-container",
+            placement: "top"
+          },
+          {
+            title: "Quick Jumps",
+            text: "Click the Earth circle to toggle between start and end. Click the Asteroid to jump straight to turnaround.",
+            target: "#label-earth",
+            placement: "right"
+          },
+          {
+            title: "Time Step Buttons",
+            text: "Use these to add or subtract one year on Earth time or on the ship's own clock. Great for seeing the difference!",
+            target: ".time-controls",
+            placement: "top"
+          },
+          {
+            title: "Play & Speed",
+            text: "Press Play to animate the whole trip. Use the Rate slider next to it to slow down or speed up time.",
+            target: ".buttons",
+            placement: "left"
           }
+        ];
+
+        function clearHighlight() {
+          if (currentHighlight) {
+            currentHighlight.classList.remove('tour-highlight');
+            currentHighlight = null;
+          }
+        }
+
+        function positionPopup(targetEl, placement = 'bottom') {
+          const rect = targetEl.getBoundingClientRect();
+          const popupRect = tourPopup.getBoundingClientRect();
+          const margin = 12;
+
+          let top, left;
+
+          switch (placement) {
+            case 'top':
+              top = rect.top - popupRect.height - margin;
+              left = rect.left + (rect.width - popupRect.width) / 2;
+              break;
+            case 'bottom':
+              top = rect.bottom + margin;
+              left = rect.left + (rect.width - popupRect.width) / 2;
+              break;
+            case 'left':
+              top = rect.top + (rect.height - popupRect.height) / 2;
+              left = rect.left - popupRect.width - margin;
+              break;
+            case 'right':
+              top = rect.top + (rect.height - popupRect.height) / 2;
+              left = rect.right + margin;
+              break;
+            default:
+              top = rect.bottom + margin;
+              left = rect.left;
+          }
+
+          // Keep inside viewport
+          const vw = window.innerWidth;
+          const vh = window.innerHeight;
+
+          if (left < 8) left = 8;
+          if (left + popupRect.width > vw - 8) left = vw - popupRect.width - 8;
+          if (top < 8) top = 8;
+          if (top + popupRect.height > vh - 8) top = vh - popupRect.height - 8;
+
+          tourPopup.style.top = `${top + window.scrollY}px`;
+          tourPopup.style.left = `${left + window.scrollX}px`;
+        }
+
+        function showStep(index) {
+          if (index < 0 || index >= steps.length) return;
+
+          currentStep = index;
+          const step = steps[currentStep];
+
+          // Clear previous
+          clearHighlight();
+
+          // Find target
+          const target = document.querySelector(step.target);
+          if (target) {
+            target.classList.add('tour-highlight');
+            currentHighlight = target;
+          }
+
+          // Build popup content
+          tourPopup.innerHTML = `
+            <h3>${step.title}</h3>
+            <div class="tour-text">${step.text}</div>
+            <div class="tour-actions">
+              <button class="tour-skip">Skip tour</button>
+              <div>
+                ${currentStep > 0 ? '<button class="secondary" id="tour-prev">Back</button>' : ''}
+                <button id="tour-next">${currentStep === steps.length - 1 ? 'Done' : 'Next'}</button>
+              </div>
+            </div>
+          `;
+
+          tourPopup.style.display = 'block';
+
+          // Position after content is in DOM
+          requestAnimationFrame(() => {
+            if (target) {
+              positionPopup(target, step.placement);
+            } else {
+              // fallback center
+              tourPopup.style.top = '120px';
+              tourPopup.style.left = '50%';
+              tourPopup.style.transform = 'translateX(-50%)';
+            }
+          });
+
+          // Wire buttons
+          const skip = tourPopup.querySelector('.tour-skip');
+          const prev = tourPopup.querySelector('#tour-prev');
+          const next = tourPopup.querySelector('#tour-next');
+
+          if (skip) {
+            skip.addEventListener('click', finishTour);
+          }
+          if (prev) {
+            prev.addEventListener('click', () => showStep(currentStep - 1));
+          }
+          if (next) {
+            next.addEventListener('click', () => {
+              if (currentStep === steps.length - 1) {
+                finishTour();
+              } else {
+                showStep(currentStep + 1);
+              }
+            });
+          }
+        }
+
+        function finishTour() {
+          clearHighlight();
+          if (tourOverlay) {
+            tourOverlay.style.transition = 'opacity 0.2s ease';
+            tourOverlay.style.opacity = '0';
+            setTimeout(() => {
+              tourOverlay.style.display = 'none';
+              tourOverlay.style.opacity = '1';
+              tourOverlay.style.transition = '';
+            }, 220);
+          }
+          tourPopup.style.display = 'none';
+          sessionStorage.setItem('relsim_walkthrough_seen', 'true');
+        }
+
+        // Start the tour
+        if (tourOverlay) {
+          tourOverlay.style.display = 'block';
+          tourOverlay.style.opacity = '1';
+        }
+        showStep(0);
+
+        // Reposition on resize (simple)
+        // Note: we attach listener only once per tour start
+        const resizeHandler = () => {
+          if (tourPopup.style.display !== 'none' && currentHighlight) {
+            const step = steps[currentStep];
+            positionPopup(currentHighlight, step.placement);
+          }
+        };
+        window.addEventListener('resize', resizeHandler, { once: false });
+
+        // Store for potential cleanup if needed (optional)
+      }
+
+      // First-time guided tour
+      if (!sessionStorage.getItem('relsim_walkthrough_seen')) {
+        startWalkthrough();
+      }
+
+      // Replay button (always available)
+      const replayBtn = document.getElementById('replay-tour');
+      if (replayBtn) {
+        replayBtn.addEventListener('click', () => {
+          sessionStorage.removeItem('relsim_walkthrough_seen');
+          // Clear any existing tour UI
+          const existingOverlay = document.getElementById('tour-overlay');
+          const existingPopup = document.getElementById('tour-popup');
+          if (existingOverlay) {
+            existingOverlay.style.display = 'none';
+            existingOverlay.style.opacity = '1';
+          }
+          if (existingPopup) existingPopup.style.display = 'none';
+
+          // Remove previous highlights
+          document.querySelectorAll('.tour-highlight').forEach(el => {
+            el.classList.remove('tour-highlight');
+          });
+
+          startWalkthrough();
         });
       }
     }
