@@ -8,5 +8,9 @@ Thumbs.db
 *.swp
 *.swo
 
+# AI
+.omo
+.playwright-mcp
+
 # Local server
 node_modules/
