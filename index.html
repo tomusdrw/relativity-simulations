@@ -621,6 +621,28 @@
     .viz-mini-toggle.active { background: var(--accent); border-color: #2f6cb8; color: #fff; }
     .viz-info svg { display: block; }
 
+    .viz-zoom-btn {
+      position: absolute;
+      right: 8px;
+      z-index: 6;
+      width: 30px; height: 30px;
+      display: none;
+      align-items: center; justify-content: center;
+      background: rgba(18, 24, 38, 0.72);
+      border: 1px solid #2a3448;
+      color: #a3adbf;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px; font-weight: 700; line-height: 1;
+      -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+      transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease, transform 0.05s ease;
+    }
+    .viz-zoom-btn:hover { background: rgba(31, 38, 54, 0.92); color: #e6e9f0; border-color: #4aa3ff; }
+    .viz-zoom-btn:active { transform: translateY(1px); }
+    .viz-zoom-btn:focus-visible { outline: 2px solid #4aa3ff; outline-offset: 2px; }
+    #btn-zoom-in { bottom: 40px; }
+    #btn-zoom-out { bottom: 8px; }
+
     .viz-popover {
       position: absolute;
       top: 44px;
@@ -684,14 +706,17 @@
                 <p>A first-person view from an observer on Earth &mdash; you see only the light-delayed &ldquo;ghost ship&rdquo;, never its true location.</p>
                 <p>Because light travels at finite speed, the ship appears at its <strong>retarded</strong> position: where it was when the light you see now left it. Its real position stays invisible; that light hasn&rsquo;t arrived yet.</p>
                 <p>The ghost ship is the <strong>same ship</strong> you see in the 2D map (same color, same shape); what changes is the light reaching Earth. Its light is <strong>Doppler-shifted</strong> across the spectrum: receding, it stretches toward infrared so the ship dims toward black; approaching, a red ship&rsquo;s hue rotates through orange, yellow, green, blue and (at the highest speeds) wraps back toward magenta. <em>Nothing is clamped</em> &mdash; at extreme speed the ship really does collapse to a near-invisible sliver or blaze out, exactly as the physics dictates.</p>
-                <p>Its shape uses the <strong>Terrell&ndash;Penrose</strong> photographed length by default (uncheck for textbook Lorentz contraction 1/&gamma;): the approaching ship looks stretched and the receding ship more squashed, because the camera gathers light that left the ship&rsquo;s front and back at different times. This distortion is shown assuming the observer is <strong>on Earth</strong>; the observer-position switch (sidebar) previews a future midpoint observer, which would change the geometry for both the 2D map and this 3D view.</p>
-                <p>Toggle it with the <strong>3D</strong> button (top-left) or the <span class="kbd">3</span> key.</p>
+                <p>Its shape uses the <strong>Terrell&ndash;Penrose</strong> photographed form by default (uncheck for textbook Lorentz contraction 1/&gamma;). The observer-position switch (sidebar) chooses who is watching: <strong>on Earth</strong> the ship&rsquo;s motion is radial, so you see a longitudinal distortion (approaching stretched, receding squashed); at the <strong>midpoint</strong> the motion is transverse, so the ship appears <em>rotated</em> by arcsin(&beta;) &mdash; the classic Terrell effect. This 3D view also moves to that observer&rsquo;s vantage.</p>
+                <p>At the midpoint observer you can <strong>zoom</strong>: scroll the 3D pane or use the +/&minus; buttons. Zooming pivots on the ship &mdash; zoomed out the whole route is framed (Earth &amp; asteroid near the edges); zoomed in the camera recenters on and follows the ship.</p>
+                <p>Toggle the view with the <strong>3D</strong> button (top-left) or the <span class="kbd">3</span> key.</p>
               </div>
             </div>
             <div class="viz-pane" id="viz-pane-3d">
               <canvas id="viz3d"></canvas>
               <div class="v3d-label" id="v3d-ship"></div>
               <div class="v3d-label" id="v3d-ast" style="color:#f0c98f;"></div>
+              <button id="btn-zoom-in" class="viz-zoom-btn" type="button" aria-label="Zoom in" title="Zoom in (scroll also works)">+</button>
+              <button id="btn-zoom-out" class="viz-zoom-btn" type="button" aria-label="Zoom out" title="Zoom out (scroll also works)">&minus;</button>
             </div>
           </div>
           <!-- World labels (small, inside viz, positioned relative to viz-wrap) -->
@@ -775,9 +800,9 @@
 
         <div class="control-group" aria-label="Observer position">
           <div class="opt-label">Observer position</div>
-          <label class="opt"><input type="radio" name="observer-pos" value="earth" checked disabled> On Earth</label>
-          <label class="opt opt-disabled"><input type="radio" name="observer-pos" value="mid" disabled> Equidistant from Earth &amp; asteroid <span class="opt-note" style="display:inline">(coming soon)</span></label>
-          <div class="opt-note">The ghost ship&rsquo;s Terrell&ndash;Penrose distortion in the 2D map assumes the observer is on Earth. A midpoint observer would change the geometry for both views.</div>
+          <label class="opt"><input type="radio" name="observer-pos" value="earth" checked> On Earth</label>
+          <label class="opt"><input type="radio" name="observer-pos" value="mid"> Equidistant from Earth &amp; asteroid</label>
+          <div class="opt-note">The ghost ship&rsquo;s Terrell&ndash;Penrose distortion is computed for this observer. On Earth the motion is radial (longitudinal stretch); at the midpoint it is transverse (rotational distortion). The clock readings stay Earth-frame references.</div>
         </div>
 
         <div class="info">
@@ -804,7 +829,7 @@
           The four clocks show proper times and <strong>light-signal observations</strong> (signals travel at c).<br>
           &ldquo;Earth time (local)&rdquo; is Earth&rsquo;s coordinate time t simultaneous with the ship&rsquo;s true position.<br>
           &ldquo;Ship time (observed)&rdquo; from Earth is the ship&rsquo;s proper time at the retarded (light-delayed) position.<br>
-          The ghost ship is the same ship as the real one. Its light is Doppler-shifted (dims toward black while receding; runs red&rsaquo;orange&rsaquo;green&rsaquo;blue while approaching) and its shape uses the <strong>Terrell&ndash;Penrose</strong> photographed length by default (uncheck for textbook Lorentz 1/&gamma;), assuming the observer is <strong>on Earth</strong>. Nothing is clamped &mdash; at high speed it can shrink to a sliver or blaze out white.
+          The ghost ship is the same ship as the real one. Its light is Doppler-shifted (dims toward black while receding; runs red&rsaquo;orange&rsaquo;green&rsaquo;blue while approaching) and its shape uses the <strong>Terrell&ndash;Penrose</strong> photographed form by default (uncheck for textbook Lorentz 1/&gamma;). Pick the observer with the radio below: on Earth the distortion is longitudinal; at the midpoint the ship appears <strong>rotated</strong> (transverse Terrell effect). Clocks stay Earth-frame references. Nothing is clamped &mdash; at high speed it can shrink to a sliver or blaze out white.
         </div>
       </div>
     </div>
@@ -817,46 +842,41 @@
       return 1 / Math.sqrt(Math.max(1e-12, 1 - beta * beta));
     }
 
-    // Relativistic visual effects applied to the OBSERVED ghost ship:
-    //  - Lorentz contraction along the direction of motion (textbook 1/gamma)
-    //  - relativistic Doppler color shift, modeled as a spectral hue rotation on the
-    //    ship's true colors. Receding: light stretches toward infrared, so the ship
-    //    dims and deepens to a dark crimson (hue unchanged, lightness drops).
-    //    Approaching: light compresses, so a red ship's hue rotates through
-    //    orange -> yellow -> green -> blue as beta grows (physically correct for a
-    //    red-painted reflector). Capped before wrapping back to magenta.
-    //  - relativistic beaming (apparent brightness ~ f^~2.5).
-    // `receding` = the ship is moving away from the observer at the retarded event
-    // (the outbound leg). Values are clamped so the ship stays visible at extreme beta.
-    function relativisticVisuals(beta, receding, terrell) {
+    // Relativistic visual effects applied to the OBSERVED ghost ship, computed from the
+    // ship's velocity decomposed relative to the OBSERVER's line of sight:
+    //   betaR = radial component (>0 = receding),  betaT = transverse component magnitude.
+    //  - Doppler factor f = 1/(gamma*(1+betaR)). This is the fully general relativistic
+    //    Doppler factor: pure recede (betaR=beta) and pure approach (betaR=-beta) reduce to
+    //    the textbook sqrt formulas; pure transverse (betaR=0) gives the transverse Doppler
+    //    redshift f = 1/gamma (a redshift with no radial motion).
+    //  - Color: f<1 (redshift) dims toward black; f>1 (blueshift) rotates hue red->..->blue.
+    //  - Length: Lorentz 1/gamma along motion; PLUS, for the Earth (radial) observer with
+    //    Terrell on, the photographed longitudinal length = f instead.
+    //  - Terrell rotation: the photographed shape rotates by arcsin(betaT) about the screen
+    //    normal. Zero for the Earth observer (purely radial, betaT=0); nonzero for the
+    //    midpoint observer (transverse motion). Applied only when the Terrell toggle is on.
+    function relativisticVisuals(beta, betaR, betaT, terrell, observerIsEarth) {
       const b = Math.max(0, Math.min(0.9995, beta));
-      const f = receding
-        ? Math.sqrt((1 - b) / (1 + b))    // observed/emitted frequency  (<1 => redder/dimmer)
-        : Math.sqrt((1 + b) / (1 - b));   // (>1 => bluer/brighter)
       const gamma = 1 / Math.sqrt(Math.max(1e-12, 1 - b * b));
-      // Apparent length of the ghost ship along its motion:
-      //  - Lorentz: 1/gamma, the textbook contraction measured in the observer frame.
-      //  - Terrell-Penrose (toggle): the *photographed* length = the Doppler factor f,
-      //    which stretches the ship when approaching (f>1) and squeezes it when receding.
-      // UNCLAMPED on purpose — at extreme beta this collapses toward 0 or explodes (the
-      // point: see how crazy real relativistic geometry gets).
-      const contraction = terrell ? f : 1 / gamma;
-      // hue rotation in degrees: receding stays red (dims only); approaching rotates the
-      // spectrum. log2(f) maps beta to hue, UNCAPPED — at very high beta it wraps past
-      // blue into violet/magenta and back toward red.
-      let hueDeg;
-      if (receding) {
-        hueDeg = 0;
-      } else {
-        hueDeg = Math.log(f) / Math.log(2) * 100;
-      }
+      const br = Math.max(-0.9995, Math.min(0.9995, betaR));
+      const f = 1 / (gamma * (1 + br));    // general relativistic Doppler factor
+      // Apparent length along motion. Earth+Terrell uses the photographed longitudinal
+      // length f; otherwise textbook Lorentz contraction 1/gamma (the midpoint observer's
+      // Terrell effect is a rotation, not a length change).
+      const contraction = (observerIsEarth && terrell) ? f : 1 / gamma;
+      // Terrell rotation about the screen normal (radians). Zero if Terrell off or no
+      // transverse motion (Earth observer). Unclamped.
+      const bt = Math.max(0, Math.min(0.9995, betaT));
+      const rotRad = terrell ? Math.asin(bt) : 0;
+      // hue: redshift (f<=1) stays red and dims; blueshift (f>1) rotates the spectrum,
+      // uncapped (wraps past blue toward magenta at extreme beta).
+      const receding = f <= 1;
+      const hueDeg = receding ? 0 : Math.log(f) / Math.log(2) * 100;
       const hueRad = hueDeg * Math.PI / 180;
-      // brightness multiplier, UNCLAMPED: receding dims toward black (light ->IR),
-      // approaching brightens without bound (beaming). Final HSL/HSV components are still
-      // bounded to [0,1] because that is the valid range for a representable color.
+      // brightness ~ f^2.5 (beaming), unclamped; final HSL/HSV components stay in [0,1].
       const light = Math.pow(f, 2.5);
       const label = (receding ? 'redshift' : 'blueshift') + ' \u00d7' + f.toFixed(2);
-      return { contraction, hueRad, hueDeg, light, f, label, receding };
+      return { contraction, rotRad, hueRad, hueDeg, light, f, label, receding };
     }
 
     // Shared scratch + helpers to apply the Doppler hue rotation to material colors.
@@ -958,6 +978,72 @@
       // Fallbacks at the end
       if (tNow >= T) return { x: 0, leg: 'in', te: T };
       return { x: D, leg: 'out', te: T1 };
+    }
+
+    // ============ Observer position ============
+    // The observer can be on Earth (origin) or at the midpoint of the Earth-asteroid line,
+    // offset perpendicular to it (above, in the 2D plane). "Equidistant from Earth and
+    // asteroid" => on the perpendicular bisector x = D/2.
+    const OBS_FRAC = 0.4;   // perpendicular offset = D * OBS_FRAC (midpoint observer)
+    function getObserverLoc() {
+      if (observerPosition === 'mid') return { x: D / 2, y: D * OBS_FRAC };
+      return { x: 0, y: 0 };
+    }
+    function observerIsEarth() { return observerPosition === 'earth'; }
+
+    // Retarded emission event for the midpoint observer: solve t = te + |obs - ship(te)|
+    // for te on each leg (quadratic). Returns { x, leg, te } like the Earth version.
+    function getRetardedEventMid(D, beta, tNow, obs) {
+      if (tNow <= 0) return { x: 0, leg: 'out', te: 0 };
+      const T1 = D / beta, T = 2 * T1;
+      const h2 = obs.y * obs.y;
+      // x(te) = p*te + q on a leg; solve (t-te)^2 = (p*te + r)^2 + h^2, r = q - obs.x
+      function solveLeg(p, q, teMin, teMax) {
+        const r = q - obs.x;
+        const a = 1 - p * p;                  // = 1 - beta^2 > 0
+        const k = tNow + p * r;               // (t + p*r)
+        const disc = k * k - a * (tNow * tNow - r * r - h2);
+        if (disc < 0) return null;
+        const sq = Math.sqrt(disc);
+        const cands = [(k + sq) / a, (k - sq) / a];
+        for (const te of cands) {
+          if (te >= teMin - 1e-9 && te <= teMax + 1e-9 && te <= tNow + 1e-9) {
+            const x = p * te + q;
+            return { x: Math.max(0, Math.min(D, x)), leg: (p > 0 ? 'out' : 'in'), te };
+          }
+        }
+        return null;
+      }
+      let res = solveLeg(beta, 0, 0, T1);          // outbound: x = beta*te
+      if (res) return res;
+      res = solveLeg(-beta, 2 * D, T1, T);         // inbound: x = 2D - beta*te
+      if (res) return res;
+      // No emission event whose light has arrived yet (observer is off-axis, so the
+      // ship's earliest light reaches it only after a delay). Caller hides the ghost.
+      return null;
+    }
+
+    // Dispatch retarded event by observer. Earth keeps the closed-form solver (no
+    // spurious roots from squaring); midpoint uses the quadratic.
+    function getRetardedEvent(D, beta, tNow) {
+      if (observerPosition === 'mid') return getRetardedEventMid(D, beta, tNow, getObserverLoc());
+      return getObservedPositionFromEarth(D, beta, tNow);
+    }
+
+    // Decompose the ship's velocity (along x) at the retarded event into radial and
+    // transverse components relative to the observer, plus the signed Terrell rotation
+    // about the screen normal (+z). betaR > 0 = receding.
+    function observerRelativeMotion(retX, leg, beta, obs) {
+      const v = (leg === 'out') ? beta : -beta;     // x-velocity (c=1)
+      const dx = retX - obs.x;
+      const dy = 0 - obs.y;
+      const d = Math.sqrt(dx * dx + dy * dy) || 1e-9;
+      const betaR = v * dx / d;
+      const betaT = Math.sqrt(Math.max(0, beta * beta - betaR * betaR));
+      // Terrell rotation axis = v x los; its z-component sets CW/CCW for the in-plane tilt.
+      const axisZ = v * (-obs.y) / d;
+      const signedRot = Math.asin(Math.max(0, Math.min(0.9995, betaT))) * Math.sign(axisZ || 1);
+      return { betaR, betaT, d, signedRot };
     }
 
     // ============ Cartoon Texture Generators (self-contained, cute style) ============
@@ -1238,6 +1324,7 @@
     // Three.js
     let renderer, scene, camera;
     let earthMesh, asteroidMesh, shipMesh, shadowShipMesh;
+    let observerIcon;
     let routeOutMesh, routeInMesh;
     let routeOutY = 1.05;
     let routeInY = -1.05;
@@ -1252,6 +1339,8 @@
     let lastRafTime = 0;
     let playbackRate = 1.0; // animation speed multiplier
     let terrellEnabled = true; // Terrell-Penrose photographed shape vs Lorentz contraction (default on)
+    let observerPosition = 'earth'; // 'earth' (origin) or 'mid' (equidistant from Earth & asteroid)
+    let zoom3D = 0; // 3D midpoint camera zoom: 0 = whole route framed, 1 = on the ship
 
     // Three objects refs for updates
     let routeOut, routeIn; // meshes
@@ -1438,6 +1527,34 @@
         halo.scale.set(1, 1, 1);
       }
 
+      // Observer position marker (shown for the midpoint observer)
+      function makeLabelTexture(text, color) {
+        const c = makeCanvas(256, 64);
+        const ctx = c.getContext('2d');
+        ctx.font = 'bold 34px system-ui, sans-serif';
+        ctx.fillStyle = color;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(text, 128, 32);
+        return new THREE.CanvasTexture(c);
+      }
+      observerIcon = new THREE.Group();
+      observerIcon.add(new THREE.Mesh(
+        new THREE.RingGeometry(0.34, 0.40, 32),
+        new THREE.MeshBasicMaterial({ color: 0xffc857, transparent: true, opacity: 0.45, side: THREE.DoubleSide })
+      ));
+      observerIcon.add(new THREE.Mesh(
+        new THREE.CircleGeometry(0.07, 18),
+        new THREE.MeshBasicMaterial({ color: 0xffc857, transparent: true, opacity: 0.6 })
+      ));
+      const obsLbl = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: makeLabelTexture('observer', '#caa05a'), transparent: true, opacity: 0.6, depthWrite: false
+      }));
+      obsLbl.scale.set(1.6, 0.4, 1);
+      obsLbl.position.set(0, 0.62, 0);
+      observerIcon.add(obsLbl);
+      observerIcon.visible = false;
+      scene.add(observerIcon);
+
       // Reference tick marks will be (re)created when D changes
       window.__relsimTicks = [];
 
@@ -1450,25 +1567,48 @@
       relayoutViz();
     }
 
+    function updateObserverIcon() {
+      if (!observerIcon) return;
+      if (observerPosition === 'mid') {
+        const loc = getObserverLoc();
+        observerIcon.position.set(loc.x, loc.y, 0.02);
+        observerIcon.visible = true;
+      } else {
+        observerIcon.visible = false;
+      }
+    }
+
     function updateCameraAndRoutes() {
       // Fit camera horizontally to content with margins
       const margin = Math.max(1.6, D * 0.12);
       const left = -margin;
       const right = D + margin;
       const aspect = width / height;
-      const viewWidth = right - left;
-      const viewHeight = viewWidth / aspect;
 
-      // Keep a minimum vertical view so routes are visible
+      // Vertical framing. For the midpoint observer, raise the top to include the
+      // observer icon (at y = D*OBS_FRAC) with margin; otherwise keep the default.
       const minH = width < 420 ? 3.8 : 4.8;
-      const h = Math.max(viewHeight, minH);
-      const w = h * aspect;
+      let top, bottom;
+      if (observerPosition === 'mid') {
+        top = Math.max(minH / 2, D * OBS_FRAC + 1.4);
+        bottom = -2.0;
+      } else {
+        top = minH / 2;
+        bottom = -minH / 2;
+      }
+      let vh = top - bottom;
+      const viewWidth = right - left;
+      const vwByH = vh * aspect;
+      const w = Math.max(viewWidth, vwByH);   // never crop the route horizontally
+      vh = w / aspect;
+      const cy = (top + bottom) / 2;
+      top = cy + vh / 2; bottom = cy - vh / 2;
 
       const cx = (left + right) / 2;
       camera.left = cx - w / 2;
       camera.right = cx + w / 2;
-      camera.top = h / 2;
-      camera.bottom = -h / 2;
+      camera.top = top;
+      camera.bottom = bottom;
       camera.updateProjectionMatrix();
 
       // Update route transforms (created as unit width)
@@ -1488,6 +1628,8 @@
 
       asteroidMesh.position.x = D;
       asteroidMesh.position.y = 0;
+
+      updateObserverIcon();
 
       // Recreate tick marks along the route baseline
       const oldTicks = window.__relsimTicks || [];
@@ -1521,17 +1663,29 @@
       shipMesh.scale.set(dir, 1, 1);   // mirror texture for direction (x flip)
       shipMesh.rotation.z = 0;  // planes face camera
 
-      // Shadow ship + halo: observed position from Earth (light delay)
-      // This uses the same retarded event as "Ship time (observed)" above Earth.
-      const obs = getObservedPositionFromEarth(D, beta, state.t);
+      // Shadow ship + halo: observed (retarded) position for the current observer, with
+      // relativistic visuals (Lorentz contraction, Doppler color, Terrell rotation).
+      const obs = getRetardedEvent(D, beta, state.t);
+      const halo = shadowShipMesh.userData && shadowShipMesh.userData.halo;
+      if (!obs) {
+        // No light from the ship has reached this observer yet (off-axis midpoint).
+        shadowShipMesh.visible = false;
+        if (halo) halo.visible = false;
+        placeShip3D(state);
+        return;
+      }
+      shadowShipMesh.visible = true;
+      if (halo) halo.visible = true;
       const sy = (obs.leg === 'out') ? routeOutY : routeInY;
       shadowShipMesh.position.set(obs.x, sy, 0.01);
-      const sdir = (obs.leg === 'out') ? 1 : -1;
-      // Relativistic visuals on the observed ghost: Lorentz contraction along motion
-      // + Doppler color tint (red when receding, blue when approaching) + beaming.
-      const rv = relativisticVisuals(beta, obs.leg === 'out', terrellEnabled);
-      shadowShipMesh.scale.set(sdir * rv.contraction, 1, 1);
-      shadowShipMesh.rotation.z = 0;
+      const oloc = getObserverLoc();
+      const rel = observerRelativeMotion(obs.x, obs.leg, beta, oloc);
+      const rv = relativisticVisuals(beta, rel.betaR, rel.betaT, terrellEnabled, observerIsEarth());
+      // Direction via rotation (not negative scale) so the Terrell tilt composes cleanly;
+      // contraction is along the ship's length, Terrell rotation tilts it in-plane.
+      const dirAngle = (obs.leg === 'out') ? 0 : Math.PI;
+      shadowShipMesh.scale.set(rv.contraction, 1, 1);
+      shadowShipMesh.rotation.z = dirAngle + rel.signedRot;
       const gmat = shadowShipMesh.userData && shadowShipMesh.userData.ghostMat;
       if (gmat) {
         gmat.uniforms.u_hue.value = rv.hueRad;
@@ -1540,7 +1694,6 @@
       }
 
       // Halo glow follows the shadow, tinted to the Doppler-shifted color
-      const halo = shadowShipMesh.userData && shadowShipMesh.userData.halo;
       if (halo) {
         halo.position.set(obs.x, sy, 0.005);
         halo.scale.set(1, 1, 1);   // soft symmetric glow (mirroring is irrelevant)
@@ -1825,6 +1978,36 @@
           updateAll();
         });
       }
+      // observer-position radio
+      document.querySelectorAll('input[name="observer-pos"]').forEach(r => {
+        r.addEventListener('change', () => {
+          observerPosition = (r.value === 'mid') ? 'mid' : 'earth';
+          update3DCameraForObserver();
+          updateObserverIcon();
+          updateAll();
+        });
+      });
+      // 3D zoom (midpoint observer): mouse wheel + +/- buttons, pivoted on the ship.
+      function applyZoom3D(delta) {
+        if (observerPosition !== 'mid') return;
+        zoom3D = Math.max(0, Math.min(1, zoom3D + delta));
+        update3DCameraForObserver();
+        const st = computeState(D, beta, progress);
+        placeShip3D(st);
+        render();
+      }
+      const pane3d = document.getElementById('viz-pane-3d');
+      if (pane3d) {
+        pane3d.addEventListener('wheel', (e) => {
+          if (observerPosition !== 'mid') return;
+          e.preventDefault();
+          applyZoom3D(e.deltaY < 0 ? 0.08 : -0.08);   // scroll up = zoom in
+        }, { passive: false });
+      }
+      const zIn = document.getElementById('btn-zoom-in');
+      const zOut = document.getElementById('btn-zoom-out');
+      if (zIn) zIn.addEventListener('click', () => applyZoom3D(0.15));
+      if (zOut) zOut.addEventListener('click', () => applyZoom3D(-0.15));
 
       distSlider.addEventListener('input', () => {
         applyDist(distSlider.value);
@@ -2292,6 +2475,7 @@
       if (on && !renderer3d) initThree3D();
       relayoutViz();
       if (on) {
+        update3DCameraForObserver();
         const st = computeState(D, beta, progress);
         placeShip3D(st);
         render();
@@ -2472,7 +2656,7 @@
         color: 0xffd9a0, transparent: true, opacity: 0.5,
         blending: THREE.AdditiveBlending, depthWrite: false
       }));
-      glow.scale.set(4.2, 4.2, 1);
+      glow.scale.set(7.0, 7.0, 1);
       // cache rest-state colors so placeShip3D can re-tint from base each frame (no compounding)
       grp.userData.bodyMat = bodyMat;
       grp.userData.bodyBase = new THREE.Color(0xff4d4d);
@@ -2576,15 +2760,28 @@
 
     function placeShip3D(state) {
       if (!view3DEnabled || !ghostShip3d) return;
-      const obs = getObservedPositionFromEarth(D, beta, state.t);
+      const obs = getRetardedEvent(D, beta, state.t);
+      if (!obs) {
+        ghostShip3d.visible = false;
+        if (ghostGlow3d) ghostGlow3d.visible = false;
+        const shipLbl = document.getElementById('v3d-ship');
+        if (shipLbl) { shipLbl.textContent = 'ghost ship \u00b7 not yet visible to this observer'; shipLbl.style.display = ''; }
+        update3DCameraForObserver();
+        return;
+      }
+      ghostShip3d.visible = true;
+      if (ghostGlow3d) ghostGlow3d.visible = true;
       const frac = D > 1e-9 ? Math.max(0, Math.min(1, obs.x / D)) : 0;
       const xPos = frac * FAR3D;
       ghostShip3d.position.set(xPos, SHIP_Y3D, 0);
       ghostShip3d.rotation.y = (obs.leg === 'out') ? 0 : Math.PI; // point along travel direction
 
-      // Relativistic visuals: Lorentz contraction along motion + Doppler hue rotation + beaming.
-      const rv = relativisticVisuals(beta, obs.leg === 'out', terrellEnabled);
+      // Relativistic visuals from the observer-relative velocity decomposition.
+      const oloc = getObserverLoc();
+      const rel3 = observerRelativeMotion(obs.x, obs.leg, beta, oloc);
+      const rv = relativisticVisuals(beta, rel3.betaR, rel3.betaT, terrellEnabled, observerIsEarth());
       ghostShip3d.scale.set(rv.contraction, 1, 1);
+      ghostShip3d.rotation.z = rel3.signedRot;   // Terrell tilt (0 for the radial Earth observer)
       const u = ghostShip3d.userData;
       if (u) {
         if (u.bodyMat)   applyShift(u.bodyMat,   u.bodyBase,   rv, u.bodyEmisBase, u.bodyEmisI);
@@ -2598,12 +2795,51 @@
       if (ghostGlow3d.material) {
         const gb = ghostGlow3d.userData && ghostGlow3d.userData.baseColor;
         const hueAdd = rv.hueRad / (2 * Math.PI);
-        if (gb) { gb.getHSL(_hslTmp); ghostGlow3d.material.color.setHSL((_hslTmp.h + hueAdd) % 1, _hslTmp.s, Math.max(0, Math.min(1, _hslTmp.l * rv.light))); }
-        ghostGlow3d.material.opacity = (0.42 + 0.16 * (0.5 + 0.5 * Math.sin(tt))) * rv.light;
+        if (gb) { gb.getHSL(_hslTmp); ghostGlow3d.material.color.setHSL((_hslTmp.h + hueAdd) % 1, _hslTmp.s, Math.min(1, _hslTmp.l * Math.max(1, rv.light))); }
+        // Halo is a locator: keep it visible (floored) even when the ship dims to black
+        // on redshift, but still let it brighten on blueshift. Color still follows Doppler.
+        const pulse = 0.5 + 0.5 * Math.sin(tt);
+        ghostGlow3d.material.opacity = Math.min(0.95, Math.max(0.5, 0.5 * rv.light) + 0.2 * pulse);
       }
       if (earthSpin3d) earthSpin3d.rotation.y += 0.0006;
       if (asteroidSpin3d) asteroidSpin3d.rotation.x += 0.0015;
+      update3DCameraForObserver();   // track the ship when zoomed in (midpoint observer)
       update3DOverlay(obs, state);
+    }
+
+    // Position the 3D camera for the selected observer. Earth = the original first-person
+    // surface view; midpoint = looking down the route from above the Earth-asteroid midpoint.
+    function update3DCameraForObserver() {
+      if (!camera3d) return;
+      if (observerPosition === 'mid') {
+        camera3d.fov = 75;
+        // distFar frames the route ends (Earth/asteroid, +/- FAR3D/2 from center) near the
+        // view edges, derived from the pane aspect so it holds for any window shape.
+        const pane = document.getElementById('viz-pane-3d');
+        const aspect = (pane && pane.clientHeight > 0) ? pane.clientWidth / pane.clientHeight : 1.4;
+        const halfFovH = Math.tan((75 / 2) * Math.PI / 180) * aspect;
+        const distFar = Math.max(12, (FAR3D / 2) / (0.80 * halfFovH));
+        const distNear = 7;
+        const target0 = new THREE.Vector3(FAR3D / 2, 0, 0);   // route midpoint
+        const viewDir = new THREE.Vector3(0, 0.4648, 0.8854);  // up-and-back (normalized)
+        const shipPos = (ghostShip3d && ghostShip3d.visible) ? ghostShip3d.position : new THREE.Vector3(FAR3D / 2, SHIP_Y3D, 0);
+        // Zoom pivot is the ship: the look target slides from the route midpoint (zoomed out,
+        // whole route framed, Earth/asteroid near the edges) to the ship (zoomed in, centered).
+        const target = target0.clone().lerp(shipPos, zoom3D);
+        const dist = distFar * (1 - zoom3D) + distNear * zoom3D;
+        camera3d.position.copy(target).addScaledVector(viewDir, dist);
+        camera3d.lookAt(target);
+      } else {
+        camera3d.fov = 58;
+        camera3d.position.set(0.0, 0.08, 0.4);
+        camera3d.lookAt(FAR3D * 0.42, 0.55, 0);
+      }
+      camera3d.updateProjectionMatrix();
+      // zoom buttons are only meaningful for the midpoint overview
+      const showZoom = observerPosition === 'mid';
+      const zin = document.getElementById('btn-zoom-in'), zout = document.getElementById('btn-zoom-out');
+      if (zin) zin.style.display = showZoom ? '' : 'none';
+      if (zout) zout.style.display = showZoom ? '' : 'none';
     }
 
     init();
