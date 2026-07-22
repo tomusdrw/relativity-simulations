@@ -117,6 +117,9 @@
     .wl.major { color: #ffe9b8; font-weight: 650; font-size: 12.5px; }
     .wl.const { color: #93a1bd; font-size: 10px; font-weight: 400; letter-spacing: 0.05em; text-transform: uppercase; }
     .wl.const.zodiac { color: #e8c87a; }
+    .wl.planetsys { color: #c8b8f0; font-size: 10.5px; }
+    .wl.planet { color: #a8c8e8; font-size: 10px; font-family: ui-monospace, Menlo, monospace; }
+    .wl.planet::before { display: none; }
 
     @media (max-width: 700px) {
       #hint { display: none; }
@@ -267,6 +270,7 @@
       <label class="opt"><input type="checkbox" id="t-sats" checked> Satellite galaxies</label>
       <label class="opt"><input type="checkbox" id="t-stars" checked> Notable stars &amp; nebulae</label>
       <label class="opt"><input type="checkbox" id="t-const"> Constellations (sky directions from Sol)</label>
+      <label class="opt"><input type="checkbox" id="t-planets"> Planetary systems (zoom into Sol &amp; nearby stars)</label>
       <label class="opt"><input type="checkbox" id="t-rot"> Auto-rotate</label>
     </div>
 
@@ -276,7 +280,8 @@
       <p>☉ Sun: 8.15 kpc from the center, 20 pc above the plane. Bar: half-length ≈ 4 kpc, tilted 27°. Arms: 4 logarithmic arms, pitch ≈ 13°, fitted to observed arm tangencies &amp; crossings (Scutum +33° vs. obs. +31°, Sagittarius +44° vs. +50°, Carina at 2.4 kpc vs. ≈2.3 kpc). Arm geometry is still debated — this is one defensible model.</p>
       <p>Satellites &amp; globular clusters sit at measured positions (named clusters are catalog entries; the rest of the ~150-cluster halo is a statistical fill-in). Notable stars use Gaia/Hipparcos distances — zoom to the Sun to see them.</p>
       <p>The optional constellations layer draws spokes from Sol toward each constellation and an ecliptic ring (the zodiac band, gold labels), plus the IAU stick figures themselves: 703 real stars at their measured Hipparcos distances, so the shapes only line up when viewed from the Sun — zoom right into the Sun and look around. Direction labels are spherical centroids of the stick figures (d3-celestial).</p>
-      <p class="src">Sources: GRAVITY Collab. 2019 (R₀); Wegg+ 2015 (bar); Vallée 2014c/2015/2017 (arms); Bennett &amp; Bovy 2019 (z☉); Pietrzyński+ 2019 / Graczyk+ 2020 (LMC/SMC); McConnachie 2012 (dSph); Harris 1996, 2010 ed. (clusters); Bland-Hawthorn &amp; Gerhard 2016 (disk); Stellarium "modern" skyculture (figure topology); HYG v4.0 (figure-star positions &amp; distances).</p>
+      <p>The optional planetary-systems layer shows Sol's eight planets and 17 real exoplanet systems within ~16 pc (51 planets; NASA Exoplanet Archive, controversial candidates omitted; every host star is in the object search above). Orbit <em>planes</em> are real where known — Sol's ecliptic is correctly tilted against the galactic plane, and known transiting systems (TRAPPIST-1, 55 Cnc, LHS 1140) sit edge-on as seen from Sol — and planets animate at their true relative periods (whole systems are uniformly slowed so the fastest planet stays readable). Orbit <em>radii</em>, however, use a compressed, enormously exaggerated scale (∝ a<sup>0.6</sup>): true AU-scale orbits are far below pixel size on a galactic map.</p>
+      <p class="src">Sources: GRAVITY Collab. 2019 (R₀); Wegg+ 2015 (bar); Vallée 2014c/2015/2017 (arms); Bennett &amp; Bovy 2019 (z☉); Pietrzyński+ 2019 / Graczyk+ 2020 (LMC/SMC); McConnachie 2012 (dSph); Harris 1996, 2010 ed. (clusters); Bland-Hawthorn &amp; Gerhard 2016 (disk); Stellarium "modern" skyculture (figure topology); HYG v4.0 (figure-star positions &amp; distances); NASA Exoplanet Archive pscomppars (planetary systems).</p>
     </details>
   </div>
 
@@ -1021,6 +1026,179 @@
     })));
   }
 
+  /* ---------------- planetary systems (Sol + nearby exoplanet hosts) ---------------- */
+  // Sol's planets + real exoplanet systems within ~16 pc. Planet data: NASA Exoplanet
+  // Archive (pscomppars; controversial candidates omitted). True orbits (≤ a few AU)
+  // are far below pixel size on a galactic map, so orbit radii use a compressed,
+  // enormously exaggerated display scale: radius = PL_K · a^PL_E (a in AU).
+  // Orbit *planes* are real where known: Sol's ecliptic is correctly tilted against
+  // the galactic plane, and known transiting systems are edge-on as seen from Sol.
+  // Planets animate at their true relative periods (very short ones capped).
+  const PL_K = 0.0046, PL_E = 0.6;   // Earth -> 0.0046 pc, Neptune -> 0.035 pc
+  const PL_DPS = 12;                 // animation speed, simulated days per real second
+  const PL_W_MAX = 0.8;              // rad/s cap on the *fastest* planet of each system
+                                     // (whole system is slowed uniformly, so relative
+                                     // periods stay true)
+  const SOL_PLANETS = [
+    // [name, a AU, period d, color]
+    ['Mercury', 0.387, 87.97, '#b8ab9d'], ['Venus', 0.723, 224.70, '#e8cd8f'],
+    ['Earth', 1.000, 365.25, '#6fa8ff'], ['Mars', 1.524, 686.98, '#e07a4f'],
+    ['Jupiter', 5.203, 4332.6, '#d8b08c'], ['Saturn', 9.537, 10759, '#e3cf9b'],
+    ['Uranus', 19.19, 30687, '#9fd8dd'], ['Neptune', 30.07, 60190, '#6f8fe0'],
+  ];
+  // [host, ra, dec, dist pc, edge-on from Sol?, star color, [[suffix, a AU, period d], ...]]
+  const EXO_SYSTEMS = [
+    ['Proxima Centauri', hms(14, 29, 43), dms(-1, 62, 41), 1.302, 0, '#ff9a7a', [['d', 0.0288, 5.123], ['b', 0.0485, 11.185]]],
+    ["Barnard's Star", hms(17, 57, 48), dms(1, 4, 42), 5.96 / LY, 0, '#ff9a7a', [['d', 0.0188, 2.340], ['b', 0.0229, 3.154], ['c', 0.0274, 4.124], ['e', 0.0381, 6.739]]],
+    ['Epsilon Eridani', hms(3, 32, 56), dms(-1, 9, 27), 10.5 / LY, 0, '#ffc98a', [['b', 3.53, 2680]]],
+    ['Ross 128', hms(11, 47, 44), dms(1, 0, 48), 3.374, 0, '#ff9a7a', [['b', 0.0496, 9.866]]],
+    ['Tau Ceti', hms(1, 44, 4), dms(-1, 15, 56), 11.9 / LY, 0, '#ffd27f', [['g', 0.133, 20.0], ['h', 0.243, 49.41], ['f', 1.334, 636.1]]],
+    ['GJ 1061', hms(3, 36, 0), dms(-1, 44, 31), 3.673, 0, '#ff9a7a', [['b', 0.021, 3.207], ['c', 0.0342, 6.682], ['d', 0.054, 13.07]]],
+    ['YZ Ceti', hms(1, 12, 31), dms(-1, 17, 0), 3.711, 0, '#ff9a7a', [['b', 0.0163, 2.021], ['c', 0.0216, 3.060], ['d', 0.0285, 4.656]]],
+    ["Teegarden's Star", hms(2, 53, 1), dms(1, 16, 53), 3.833, 0, '#ff8f6e', [['b', 0.0259, 4.906], ['c', 0.0455, 11.416], ['d', 0.0791, 26.13]]],
+    ['Wolf 1061', hms(16, 30, 18), dms(-1, 12, 40), 4.307, 0, '#ff9a7a', [['b', 0.0375, 4.887], ['c', 0.089, 17.87], ['d', 0.470, 217.2]]],
+    ['GJ 876', hms(22, 53, 17), dms(-1, 14, 16), 4.675, 0, '#ff9a7a', [['d', 0.0208, 1.938], ['c', 0.1296, 30.09], ['b', 0.2083, 61.12], ['e', 0.3343, 124.3]]],
+    ['Gliese 581', hms(15, 19, 26), dms(-1, 7, 43), 6.299, 0, '#ff9a7a', [['e', 0.028, 3.148], ['b', 0.0399, 5.369], ['c', 0.0718, 12.92]]],
+    ['Gliese 667 C', hms(17, 18, 57), dms(-1, 34, 59), 7.244, 0, '#ffa07a', [['b', 0.0504, 7.203], ['c', 0.125, 28.14]]],
+    ['TRAPPIST-1', hms(23, 6, 29), dms(-1, 5, 2), 12.43, 1, '#ff8f6e', [['b', 0.0115, 1.511], ['c', 0.0158, 2.422], ['d', 0.0223, 4.049], ['e', 0.0293, 6.101], ['f', 0.0385, 9.208], ['g', 0.0468, 12.352], ['h', 0.0619, 18.773]]],
+    ['55 Cancri', hms(8, 52, 36), dms(1, 28, 20), 12.59, 1, '#ffd27f', [['e', 0.0154, 0.737], ['b', 0.118, 14.65], ['c', 0.247, 44.39], ['f', 0.802, 260.6], ['d', 5.60, 4799]]],
+    ['HD 40307', hms(5, 54, 4), dms(-1, 60, 1), 12.94, 0, '#ffc98a', [['b', 0.0468, 4.312], ['c', 0.0799, 9.618], ['d', 0.1321, 20.43], ['f', 0.247, 51.76]]],
+    ['LHS 1140', hms(0, 45, 0), dms(-1, 15, 16), 14.99, 1, '#ff9a7a', [['c', 0.027, 3.778], ['b', 0.0946, 24.74]]],
+    ['51 Pegasi', hms(22, 57, 28), dms(1, 20, 46), 15.46, 0, '#fff0c8', [['b', 0.052, 4.231]]],
+  ];
+  const planetSystems = []; // {grp, pts, pls:[{rd,w,phase,i,label}], hostV}
+  function hash01(str) { // deterministic per-name phases/tilts (leaves the global RNG untouched)
+    let h = 2166136261;
+    for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+    // avalanche finalizer — strings differing only in the last char ("...b"/"...c")
+    // must still land far apart, or same-system planets bunch into one clump
+    h = Math.imul(h ^ (h >>> 16), 2246822507);
+    h = Math.imul(h ^ (h >>> 13), 3266489909);
+    h ^= h >>> 16;
+    return (h >>> 0) / 4294967296;
+  }
+  function buildPlanetarySystems() {
+    const solRingMat = new THREE.LineBasicMaterial({ color: 0x4a6f9c, transparent: true, opacity: 0.55, depthWrite: false });
+    const exoRingMat = new THREE.LineBasicMaterial({ color: 0x39567a, transparent: true, opacity: 0.5, depthWrite: false });
+
+    const mkSystem = (hostPos, quat, planets, ringMat, starColor) => {
+      const grp = new THREE.Group();
+      grp.position.copy(hostPos);
+      grp.quaternion.copy(quat);
+      const n = planets.length;
+      // per-system slowdown: the fastest planet runs at PL_W_MAX, the rest keep
+      // their true relative rates (instead of an identical per-planet cap, which
+      // made short-period planets orbit as one rigid clump)
+      const wTrue = planets.map(p => 2 * Math.PI / p[2] * PL_DPS);
+      const wScale = Math.min(1, PL_W_MAX / Math.max(...wTrue));
+      const ppos = new Float32Array((n + 1) * 3); // +1: host star dot at the origin
+      const pcol = new Float32Array((n + 1) * 3);
+      const pls = [];
+      planets.forEach((p, i) => {
+        const rd = PL_K * Math.pow(p[1], PL_E);
+        const seg = 72, arr = new Float32Array(seg * 3);
+        for (let j = 0; j < seg; j++) {
+          const th = j / seg * 2 * Math.PI;
+          arr[j * 3] = rd * Math.cos(th); arr[j * 3 + 1] = rd * Math.sin(th);
+        }
+        const g = new THREE.BufferGeometry();
+        g.setAttribute('position', new THREE.BufferAttribute(arr, 3));
+        grp.add(new THREE.LineLoop(g, ringMat));
+        _c.set(p[3] || '#9fc2e8');
+        pcol[i * 3] = _c.r; pcol[i * 3 + 1] = _c.g; pcol[i * 3 + 2] = _c.b;
+        pls.push({
+          rd, i,
+          w: wTrue[i] * wScale,
+          phase: hash01(p[0]) * 2 * Math.PI,
+          label: addLabel(p[0], [0, 0, 0], 'planet', 0, 0.35, 'planets'),
+        });
+      });
+      // the host star itself: a crisp central dot plus a soft glow, so the
+      // orbits visibly circle their star (sized to sit inside the innermost orbit)
+      _c.set(starColor);
+      pcol[n * 3] = _c.r; pcol[n * 3 + 1] = _c.g; pcol[n * 3 + 2] = _c.b;
+      const glow = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: softTex, color: starColor, transparent: true, opacity: 0.85,
+        blending: THREE.AdditiveBlending, depthWrite: false
+      }));
+      const gs = Math.min(...planets.map(p => PL_K * Math.pow(p[1], PL_E))) * 0.35;
+      glow.scale.set(gs, gs, 1);
+      grp.add(glow);
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.BufferAttribute(ppos, 3));
+      geo.setAttribute('color', new THREE.BufferAttribute(pcol, 3));
+      const pts = new THREE.Points(geo, new THREE.PointsMaterial({
+        size: 5, sizeAttenuation: false, vertexColors: true, map: softTex,
+        transparent: true, opacity: 0.95, depthWrite: false
+      }));
+      pts.frustumCulled = false;
+      grp.add(pts);
+      grp.visible = false; // gated per frame by camera distance in updatePlanets
+      scene.add(grp);
+      planetSystems.push({ grp, pts, pls, hostV: hostPos.clone() });
+    };
+
+    // Sol: real ecliptic orientation — local x toward the vernal equinox, local z
+    // toward the north ecliptic pole (ra 18h, dec +66.56°; tilted 60.2° to the
+    // galactic plane), so the planets orbit prograde in the true ecliptic plane.
+    const sunV = new THREE.Vector3().fromArray(SUN_POS);
+    const dirFromSun = (ra, dec) => new THREE.Vector3().fromArray(eqToGC(ra, dec, 1)).sub(sunV).normalize();
+    const nep = dirFromSun(270, 66.5607);
+    const yAx = new THREE.Vector3().crossVectors(nep, dirFromSun(0, 0)).normalize();
+    const xAx = new THREE.Vector3().crossVectors(yAx, nep).normalize();
+    const solQ = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(xAx, yAx, nep));
+    mkSystem(sunV, solQ, SOL_PLANETS, solRingMat, '#fff3d0');
+
+    // exoplanet hosts: marker dots + a system group each
+    const hpos = new Float32Array(EXO_SYSTEMS.length * 3);
+    const hcol = new Float32Array(EXO_SYSTEMS.length * 3);
+    EXO_SYSTEMS.forEach((s, si) => {
+      const gc = eqToGC(s[1], s[2], s[3]);
+      hpos[si * 3] = gc[0]; hpos[si * 3 + 1] = gc[1]; hpos[si * 3 + 2] = gc[2];
+      _c.set('#b8a8e8');
+      hcol[si * 3] = _c.r; hcol[si * 3 + 1] = _c.g; hcol[si * 3 + 2] = _c.b;
+      const hostV = new THREE.Vector3(gc[0], gc[1], gc[2]);
+      let q;
+      if (s[4]) {
+        // transiting system: the orbit plane contains the line of sight to Sol
+        const los = hostV.clone().sub(sunV).normalize();
+        const ref = Math.abs(los.z) < 0.9 ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(1, 0, 0);
+        q = new THREE.Quaternion().setFromUnitVectors(
+          new THREE.Vector3(0, 0, 1), new THREE.Vector3().crossVectors(los, ref).normalize());
+      } else {
+        // orientation unknown — deterministic pseudo-random tilt
+        q = new THREE.Quaternion().setFromEuler(new THREE.Euler(
+          hash01(s[0]) * 2 * Math.PI, hash01(s[0] + '~i') * Math.PI, hash01(s[0] + '~j') * 2 * Math.PI));
+      }
+      mkSystem(hostV, q, s[6].map(p => [s[0] + ' ' + p[0], p[1], p[2]]), exoRingMat, s[5]);
+      if (!/Barnard|Tau Ceti|Epsilon Eridani/.test(s[0])) addLabel(s[0], gc, 'planetsys', 0, 150, 'planets'); // these three already have star labels
+      // searchable (and fly-to-able) like everything else; the view radius frames
+      // the system at ~6x its outermost drawn orbit
+      const viewR = Math.max(0.004, Math.max(...s[6].map(p => PL_K * Math.pow(p[1], PL_E))) * 6);
+      regObj(s[0], 'planetary system', gc, viewR, s[0].replace(/^GJ /, 'gliese '));
+    });
+    addLayer('planets', makeCloud(hpos, hcol, { size: 4, opacity: 0.9 }));
+  }
+
+  const _pv = new THREE.Vector3();
+  function updatePlanets(tSec) {
+    const on = document.getElementById('t-planets').checked;
+    for (const s of planetSystems) {
+      const vis = on && camera.position.distanceTo(s.hostV) < 2.0;
+      if (s.grp.visible !== vis) s.grp.visible = vis;
+      if (!vis) continue;
+      const attr = s.pts.geometry.attributes.position;
+      for (const p of s.pls) {
+        const th = p.phase + tSec * p.w;
+        const x = p.rd * Math.cos(th), y = p.rd * Math.sin(th);
+        attr.array[p.i * 3] = x; attr.array[p.i * 3 + 1] = y;
+        _pv.set(x, y, 0).applyQuaternion(s.grp.quaternion).add(s.hostV);
+        p.label.v.copy(_pv);
+      }
+      attr.needsUpdate = true;
+    }
+  }
+
   /* ---------------- scale rings & axes ---------------- */
   function buildRings() {
     const ringRadii = [5000, 10000, 15000];
@@ -1054,7 +1232,9 @@
     el.className = 'wl ' + cls;
     el.textContent = name;
     labelRoot.appendChild(el);
-    allLabels.push({ el, v: new THREE.Vector3(pos[0], pos[1], pos[2]), min: min || 0, max: max || Infinity, layer: layer || null });
+    const L = { el, v: new THREE.Vector3(pos[0], pos[1], pos[2]), min: min || 0, max: max || Infinity, layer: layer || null };
+    allLabels.push(L);
+    return L;
   }
   function buildLabels() {
     addLabel('Sgr A* — Galactic Center', [0, 0, -450], 'major', 0, 4e6);
@@ -1105,7 +1285,7 @@
     }
   }
   function layerOn(name) {
-    const map = { arms: 't-arms', gc: 't-gc', sats: 't-sats', stars: 't-stars', rings: 't-rings', const: 't-const' };
+    const map = { arms: 't-arms', gc: 't-gc', sats: 't-sats', stars: 't-stars', rings: 't-rings', const: 't-const', planets: 't-planets' };
     const id = map[name];
     return id ? document.getElementById(id).checked : true;
   }
@@ -1126,9 +1306,13 @@
       c.tz + r * cp
     );
     camera.lookAt(c.tx, c.ty, c.tz);
+    // near plane tracks zoom depth (log depth buffer absorbs the ratio change),
+    // so planetary-scale geometry isn't clipped when diving below 0.05 pc
+    camera.near = clamp(1e-7, 0.05, r * 0.02);
+    camera.updateProjectionMatrix();
   }
   function setupControls(dom) {
-    const MIN_R = 0.3, MAX_R = 1.4e6;
+    const MIN_R = 0.0008, MAX_R = 1.4e6;
     const pointers = new Map();
     let mode = 'rotate';
     let pinchD = 0, pinchCx = 0, pinchCy = 0;
@@ -1238,11 +1422,19 @@
     bind('t-sats', ['sats']);
     bind('t-stars', ['stars']);
     bind('t-const', ['const']);
+    bind('t-planets', ['planets']);
+    // switching the layer on from afar flies to the Sun so the systems are visible
+    document.getElementById('t-planets').addEventListener('change', e => {
+      if (e.target.checked && camera.position.distanceTo(new THREE.Vector3().fromArray(SUN_POS)) > 200) {
+        goTo(SUN_POS[0], SUN_POS[1], SUN_POS[2], 0.5, 2.2, 0.9);
+      }
+    });
   }
 
   /* ---------------- HUD ---------------- */
   const hudDist = document.getElementById('hud-dist');
   function fmtDist(pc) {
+    if (pc < 0.5) return Math.round(pc * 206265).toLocaleString('en-US') + ' AU';
     if (pc < 950) return pc.toFixed(pc < 10 ? 1 : 0) + ' pc (' + Math.round(pc * LY) + ' ly)';
     const kpc = pc / 1000;
     return (kpc < 10 ? kpc.toFixed(2) : kpc < 100 ? kpc.toFixed(1) : Math.round(kpc)) +
@@ -1299,7 +1491,7 @@
       scene.add(ring);
     }
     ring.position.set(pos[0], pos[1], pos[2]);
-    ring.userData.base = Math.max(viewR * 0.25, 8);
+    ring.userData.base = Math.max(viewR * 0.25, 0.02);
     ring.visible = true;
     ringT0 = performance.now();
   }
@@ -1373,6 +1565,20 @@
     'VY Canis Majoris': { wiki: 'VY Canis Majoris', desc: 'One of the largest stars known — a red hypergiant roughly 1,400 times the Sun’s radius, shedding its outer layers.' },
     'Sun': { wiki: 'Sun', desc: 'Our star — a 4.6-billion-year-old G2V dwarf holding 99.86% of the Solar System’s mass.' },
     'Sagittarius A*': { wiki: 'Sagittarius A*', desc: 'The Milky Way’s central supermassive black hole — 4.3 million solar masses packed into a region smaller than Mercury’s orbit, imaged by the Event Horizon Telescope in 2022.' },
+    'Proxima Centauri': { wiki: 'Proxima Centauri', desc: 'The closest star to the Sun — a small red dwarf with two confirmed Earth-sized planets; Proxima b orbits in the habitable zone.' },
+    'Ross 128': { wiki: 'Ross 128', desc: 'A quiet red dwarf with one Earth-sized planet — one of the best nearby candidates for a temperate world.' },
+    'GJ 1061': { wiki: 'Gliese 1061', desc: 'A nearby red dwarf with three small planets, one skirting the inner edge of the habitable zone.' },
+    'YZ Ceti': { wiki: 'YZ Ceti', desc: 'A red dwarf circled by three close-in, roughly Earth-sized planets.' },
+    "Teegarden's Star": { wiki: "Teegarden's Star", desc: 'A faint, ancient red dwarf with at least three Earth-mass planets; Teegarden b and c rank among the most Earth-like known.' },
+    'Wolf 1061': { wiki: 'Wolf 1061', desc: 'A red dwarf with three planets; Wolf 1061 c is a super-Earth inside the habitable zone.' },
+    'GJ 876': { wiki: 'Gliese 876', desc: 'The first red dwarf found with planets — its giants are locked in a striking 1:2:4 Laplace resonance.' },
+    'Gliese 581': { wiki: 'Gliese 581', desc: 'A red dwarf with three confirmed low-mass planets — a pioneering system in the search for habitable worlds.' },
+    'Gliese 667 C': { wiki: 'Gliese 667 C', desc: 'The coolest member of a nearby triple star, with at least two super-Earths; Gliese 667 Cc famously orbits in the habitable zone.' },
+    'TRAPPIST-1': { wiki: 'TRAPPIST-1', desc: 'An ultracool dwarf with seven rocky planets — the largest known resonant chain; three lie in the habitable zone. The system is shown edge-on, as we see it from Sol.' },
+    '55 Cancri': { wiki: '55 Cancri', desc: 'A Sun-like star with five known planets, including the hot super-Earth 55 Cnc e, possibly a lava-ocean world. Shown edge-on — planet e transits as seen from Sol.' },
+    'HD 40307': { wiki: 'HD 40307', desc: 'A quiet K dwarf with at least four super-Earths, found by the HARPS spectrograph.' },
+    'LHS 1140': { wiki: 'LHS 1140', desc: 'A red dwarf with two transiting super-Earths; LHS 1140 b, in the habitable zone, is a prime target for atmosphere studies. Shown edge-on as seen from Sol.' },
+    '51 Pegasi': { wiki: '51 Pegasi', desc: 'A Sun-like star hosting 51 Peg b — the first exoplanet ever found around a Sun-like star (1995; Nobel Prize 2019).' },
   };
   const wikiUrl = (title) => 'https://en.wikipedia.org/wiki/' + encodeURIComponent(title.replace(/ /g, '_'));
 
@@ -1575,6 +1781,7 @@
   buildNamedNebulae();
   buildMarkers();
   buildConstellations();
+  buildPlanetarySystems();
   buildRings();
   buildLabels();
   setupControls(canvas);
@@ -1638,6 +1845,7 @@
     applyCamera();
 
     updateFades();
+    updatePlanets(now / 1000);
     updateLabels();
     updateRing(now);
     const d = camera.position.distanceTo(new THREE.Vector3(c.tx, c.ty, c.tz));
